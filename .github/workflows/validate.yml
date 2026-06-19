@@ -1,0 +1,29 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate repository files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Validate n8n workflow JSON
+        run: |
+          python3 -m json.tool script-flow-n8n/PM-Documentation-DB-Analyzer-Bot-v8.json >/dev/null
+
+      - name: Validate Docker Compose config
+        run: |
+          cp .env.example .env
+          docker compose config >/dev/null

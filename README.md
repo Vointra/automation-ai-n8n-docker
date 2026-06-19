@@ -1,77 +1,80 @@
 # Docker n8n AI - PM Documentation DB Analyzer Bot
 
-[![OpenSSF Scorecard](htt‌ps://api.securityscorecards.dev/projects/github.com/{owner}/{repo}/badge)](htt‌ps://securityscorecards.dev/viewer/?uri=github.com/{owner}/{repo})
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Vointra/automation-ai-n8n-docker/badge)](https://securityscorecards.dev/viewer/?uri=github.com/Vointra/automation-ai-n8n-docker)
+[![OpenSSF Scorecard Workflow](https://github.com/Vointra/automation-ai-n8n-docker/actions/workflows/scorecard.yml/badge.svg)](https://github.com/Vointra/automation-ai-n8n-docker/actions/workflows/scorecard.yml)
+[![Validate](https://github.com/Vointra/automation-ai-n8n-docker/actions/workflows/validate.yml/badge.svg)](https://github.com/Vointra/automation-ai-n8n-docker/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Proyek ini menjalankan stack otomasi berbasis Docker untuk n8n, Qdrant, Cloudflare Tunnel, Telegram Bot, Google Drive, dan AI lokal via Ollama. Workflow utama digunakan untuk menerima perintah Telegram, membaca arsip Preventive Maintenance MariaDB/PerconaDB, menganalisis data dengan model AI lokal, membuat laporan Markdown/DOCX/HTML, serta membuat dokumen Google Docs.
+This project provides a Docker-based automation stack for n8n, Qdrant, Cloudflare Tunnel, Telegram Bot, Google Drive, and local AI through Ollama. The main workflow receives Telegram commands, reads MariaDB/PerconaDB preventive maintenance archives, analyzes the data with a local AI model, generates Markdown/DOCX/HTML reports, and creates Google Docs output.
 
-Workflow n8n berada di:
+The n8n workflow export is located at:
 
 ```text
 script-flow-n8n/PM-Documentation-DB-Analyzer-Bot-v8.json
 ```
 
-## Arsitektur
+## Architecture
 
-Komponen utama:
+Main components:
 
-| Komponen | Fungsi |
+| Component | Purpose |
 | --- | --- |
-| n8n | Engine workflow Telegram, Google Drive, Google Docs, dan pemrosesan laporan PM |
-| Qdrant | Vector database untuk fitur RAG/context retrieval |
-| Cloudflare Tunnel | Akses HTTPS publik ke n8n tanpa membuka port langsung ke internet |
-| Ollama | AI lokal untuk analisis PM dan database |
-| Telegram Bot | Interface command untuk user |
-| Google Drive | Penyimpanan dan pembuatan dokumen Google Docs |
-| Docker Compose | Orkestrasi service di VM Ubuntu |
+| n8n | Workflow engine for Telegram, Google Drive, Google Docs, and PM report processing |
+| Qdrant | Vector database for RAG and context retrieval |
+| Cloudflare Tunnel | Public HTTPS access to n8n without exposing the VM port directly |
+| Ollama | Local AI runtime for PM and database analysis |
+| Telegram Bot | User-facing command interface |
+| Google Drive | Google Docs creation and storage integration |
+| Docker Compose | Service orchestration on the Ubuntu VM |
 
-Port service dibind ke localhost VM:
+Service ports are bound to localhost on the VM:
 
 ```text
 n8n    : 127.0.0.1:5678
-Qdrant : 127.0.0.1:6333 dan 127.0.0.1:6334
+Qdrant : 127.0.0.1:6333 and 127.0.0.1:6334
 ```
 
-Akses publik n8n diarahkan melalui Cloudflare Tunnel ke `http://n8n:5678` atau `http://localhost:5678` sesuai konfigurasi tunnel.
+Public n8n access should be routed through Cloudflare Tunnel to `http://n8n:5678` or `http://localhost:5678`, depending on the tunnel configuration.
 
-## Requirement
+## Requirements
 
-Server yang disarankan:
+Recommended server baseline:
 
-| Kebutuhan | Rekomendasi |
+| Requirement | Recommendation |
 | --- | --- |
 | OS | Ubuntu Server 24.04 LTS |
-| CPU | Minimal 4 vCPU, disarankan 8 vCPU jika menjalankan AI lokal di host yang sama |
-| RAM | Minimal 8 GB, disarankan 16 GB atau lebih |
-| Storage | Minimal 50 GB, disarankan SSD |
-| Docker | Docker Engine terbaru |
+| CPU | Minimum 4 vCPU, recommended 8 vCPU if local AI runs on the same host |
+| RAM | Minimum 8 GB, recommended 16 GB or more |
+| Storage | Minimum 50 GB, SSD recommended |
+| Docker | Recent Docker Engine |
 | Compose | Docker Compose plugin (`docker compose`) |
-| Domain | Domain/subdomain yang dikelola di Cloudflare |
-| AI Lokal | Ollama berjalan dan model tersedia, default workflow memakai `mistral:7b` |
-| Akun eksternal | Telegram Bot Token dan Google Drive OAuth credential |
+| Domain | Domain or subdomain managed in Cloudflare |
+| Local AI | Ollama running with the required model, default workflow model is `mistral:7b` |
+| External accounts | Telegram Bot token and Google Drive OAuth credential |
 
-Package host yang umum dibutuhkan:
+Common host packages:
 
 ```bash
 sudo apt update
 sudo apt install -y ca-certificates curl git
 ```
 
-## Struktur Folder VM
+## VM Directory Layout
 
-Folder host yang digunakan oleh container:
+Host folders mounted into the n8n container:
 
-| Folder VM | Mount di container | Fungsi |
+| VM folder | Container mount | Purpose |
 | --- | --- | --- |
-| `/home/bajau/pm_source` | `/home/bajau/pm_source` | Sumber file arsip PM `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2` |
-| `/home/bajau/pm_output` | `/home/bajau/pm_output` | Output Markdown dan data antara dari proses `/pm` |
-| `/home/bajau/pm_docx` | `/home/bajau/pm_docx` | Output DOCX |
-| `/home/bajau/pm_docs` | `/home/bajau/pm_docs` | Output HTML/Markdown dari `/gendoc` dan `/listdoc` |
-| `/home/bajau/pm_template` | `/home/bajau/pm_template` | Folder template dokumen tambahan jika dibutuhkan |
-| `./n8n_data` | `/home/node/.n8n` | Data internal n8n |
-| `/tmp/pm_work` | `/tmp/pm_work` | Working directory sementara |
-| `/tmp/pm_extracted` | `/tmp/pm_extracted` | Extracted archive sementara |
+| `/home/bajau/pm_source` | `/home/bajau/pm_source` | Source PM archives: `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2` |
+| `/home/bajau/pm_output` | `/home/bajau/pm_output` | Markdown reports and intermediate output from `/pm` |
+| `/home/bajau/pm_docx` | `/home/bajau/pm_docx` | DOCX output |
+| `/home/bajau/pm_docs` | `/home/bajau/pm_docs` | HTML/Markdown output from `/gendoc` and `/listdoc` |
+| `/home/bajau/pm_template` | `/home/bajau/pm_template` | Optional document template folder |
+| `./n8n_data` | `/home/node/.n8n` | n8n internal data |
+| `/tmp/pm_work` | `/tmp/pm_work` | Temporary working directory |
+| `/tmp/pm_extracted` | `/tmp/pm_extracted` | Temporary extracted archive directory |
 
-Buat folder sebelum menjalankan container:
+Create the folders before starting the stack:
 
 ```bash
 sudo mkdir -p /home/bajau/pm_source /home/bajau/pm_output /home/bajau/pm_docx /home/bajau/pm_docs /home/bajau/pm_template
@@ -79,73 +82,73 @@ sudo mkdir -p /tmp/pm_work /tmp/pm_extracted
 sudo chown -R 1000:1000 /home/bajau/pm_source /home/bajau/pm_output /home/bajau/pm_docx /home/bajau/pm_docs /home/bajau/pm_template
 ```
 
-## Instalasi
+## Installation
 
-1. Clone repository ke VM.
+1. Clone the repository on the VM.
 
 ```bash
-git clone https://github.com/<username>/<nama-repo>.git
-cd <nama-repo>
+git clone https://github.com/Vointra/automation-ai-n8n-docker.git
+cd automation-ai-n8n-docker
 ```
 
-2. Buat file environment.
+2. Create the environment file.
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-Isi nilai penting berikut:
+Set these values:
 
-| Variable | Keterangan |
+| Variable | Description |
 | --- | --- |
-| `N8N_HOST` | Domain n8n, contoh `n8n.example.com` |
-| `N8N_PROTOCOL` | Gunakan `https` jika via Cloudflare |
-| `WEBHOOK_URL` | URL publik n8n, contoh `https://n8n.example.com/` |
-| `CLOUDFLARED_TUNNEL_TOKEN` | Token Cloudflare Tunnel |
-| `TELEGRAM_BOT_TOKEN` | Token dari BotFather |
-| `OLLAMA_BASE_URL` | URL Ollama, contoh `http://host.docker.internal:11434` |
-| `MARIADB_HOST` | IP/host MariaDB target |
-| `MARIADB_PORT` | Port MariaDB, default `3306` |
-| `MARIADB_USER` | User MariaDB |
-| `MARIADB_PASSWORD` | Password MariaDB |
-| `SSH_HOST`, `SSH_USER`, `SSH_PORT` | Akses SSH server target jika workflow membutuhkannya |
+| `N8N_HOST` | n8n domain, for example `n8n.example.com` |
+| `N8N_PROTOCOL` | Use `https` when exposed through Cloudflare |
+| `WEBHOOK_URL` | Public n8n URL, for example `https://n8n.example.com/` |
+| `CLOUDFLARED_TUNNEL_TOKEN` | Cloudflare Tunnel token |
+| `TELEGRAM_BOT_TOKEN` | Telegram token from BotFather |
+| `OLLAMA_BASE_URL` | Ollama URL, for example `http://host.docker.internal:11434` |
+| `MARIADB_HOST` | Target MariaDB host or IP |
+| `MARIADB_PORT` | MariaDB port, default `3306` |
+| `MARIADB_USER` | MariaDB user |
+| `MARIADB_PASSWORD` | MariaDB password |
+| `SSH_HOST`, `SSH_USER`, `SSH_PORT` | Target SSH access if used by the workflow |
 
-3. Build dan jalankan stack.
+3. Build and start the stack.
 
 ```bash
 docker compose up -d --build
 ```
 
-4. Cek container.
+4. Check the containers.
 
 ```bash
 docker compose ps
 docker compose logs -f n8n
 ```
 
-5. Buka n8n.
+5. Open n8n.
 
-Jika dari VM lokal:
+Local VM access:
 
 ```text
 http://127.0.0.1:5678
 ```
 
-Jika Cloudflare Tunnel sudah aktif:
+Cloudflare Tunnel access:
 
 ```text
-https://domain-n8n-kamu
+https://your-n8n-domain.example.com
 ```
 
-## Setup Cloudflare Tunnel
+## Cloudflare Tunnel Setup
 
-Di Cloudflare Zero Trust:
+In Cloudflare Zero Trust:
 
-1. Buat tunnel baru.
-2. Pilih Docker sebagai environment.
-3. Copy tunnel token ke `.env` sebagai `CLOUDFLARED_TUNNEL_TOKEN`.
-4. Buat Public Hostname, contoh:
+1. Create a new tunnel.
+2. Select Docker as the environment.
+3. Copy the tunnel token into `.env` as `CLOUDFLARED_TUNNEL_TOKEN`.
+4. Create a Public Hostname, for example:
 
 ```text
 Subdomain : n8n
@@ -153,84 +156,84 @@ Domain    : example.com
 Service   : http://n8n:5678
 ```
 
-Jika tunnel service tidak bisa resolve nama container `n8n`, gunakan:
+If the tunnel service cannot resolve the `n8n` container name, use:
 
 ```text
 http://localhost:5678
 ```
 
-## Setup Ollama / AI Lokal
+## Ollama / Local AI Setup
 
-Jika Ollama berjalan di host VM:
+If Ollama runs on the VM host:
 
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull mistral:7b
 ```
 
-Pastikan Ollama menerima koneksi dari container. Contoh `.env`:
+Make sure Ollama is reachable from the n8n container. Example `.env` value:
 
 ```text
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 ```
 
-Tes dari container n8n:
+Test from inside the n8n container:
 
 ```bash
 docker exec -it n8n sh
 wget -qO- http://host.docker.internal:11434/api/tags
 ```
 
-## Setup n8n Workflow
+## n8n Workflow Setup
 
-1. Login ke n8n.
-2. Pilih menu `Workflows`.
-3. Import file:
+1. Log in to n8n.
+2. Open `Workflows`.
+3. Import this workflow file:
 
 ```text
 script-flow-n8n/PM-Documentation-DB-Analyzer-Bot-v8.json
 ```
 
-4. Set credential pada node berikut:
+4. Configure credentials for these nodes:
 
-| Credential | Digunakan oleh |
+| Credential | Used by |
 | --- | --- |
-| Telegram account | Telegram Trigger dan node pengiriman pesan/file |
-| Google Drive account | Pembuatan dan update file Google Docs |
+| Telegram account | Telegram Trigger and Telegram send message/file nodes |
+| Google Drive account | Google Docs file creation and update nodes |
 
-5. Aktifkan workflow setelah credential valid.
+5. Activate the workflow after the credentials are valid.
 
-## Command Telegram
+## Telegram Commands
 
-Command utama yang tersedia di workflow:
+Main commands available in the workflow:
 
-| Command | Fungsi |
+| Command | Purpose |
 | --- | --- |
-| `/help` | Menampilkan bantuan command |
-| `/list` | Melihat daftar arsip PM di `/home/bajau/pm_source` |
-| `/pm 1` | Memproses file PM berdasarkan nomor dari `/list` |
-| `/pm namafile.tar.gz` | Memproses file PM berdasarkan nama file |
-| `/gendoc` | Melihat daftar laporan Markdown yang bisa dibuat menjadi dokumen |
-| `/gendoc 1` | Membuat output HTML dari laporan Markdown |
-| `/gendoc 1 --md` | Mengirim ulang output Markdown |
-| `/listdoc` | Melihat daftar output HTML/Markdown di `/home/bajau/pm_docs` |
+| `/help` | Show command help |
+| `/list` | List PM archives in `/home/bajau/pm_source` |
+| `/pm 1` | Process a PM archive by number from `/list` |
+| `/pm filename.tar.gz` | Process a PM archive by exact filename |
+| `/gendoc` | List Markdown reports available for document generation |
+| `/gendoc 1` | Generate HTML output from a Markdown report |
+| `/gendoc 1 --md` | Send Markdown output |
+| `/listdoc` | List generated HTML/Markdown files in `/home/bajau/pm_docs` |
 
-Upload file PM ke server:
+Upload a PM archive to the VM:
 
 ```bash
-scp file_pm.tar.gz bajau@<ip-vm>:/home/bajau/pm_source/
+scp file_pm.tar.gz bajau@<vm-ip>:/home/bajau/pm_source/
 ```
 
-Lalu jalankan dari Telegram:
+Then run from Telegram:
 
 ```text
 /list
 /pm 1
 ```
 
-## Operasional
+## Operations
 
-Perintah harian:
+Common commands:
 
 ```bash
 docker compose ps
@@ -241,13 +244,13 @@ docker compose down
 docker compose up -d --build
 ```
 
-Backup data n8n:
+Back up n8n data:
 
 ```bash
 tar -czf n8n_data_backup_$(date +%F).tar.gz n8n_data
 ```
 
-Backup folder PM:
+Back up PM folders:
 
 ```bash
 sudo tar -czf pm_data_backup_$(date +%F).tar.gz \
@@ -258,72 +261,109 @@ sudo tar -czf pm_data_backup_$(date +%F).tar.gz \
   /home/bajau/pm_template
 ```
 
-## Keamanan Sebelum Upload GitHub
+## OpenSSF Scorecard
 
-Jangan commit file berikut:
+This repository includes a GitHub Actions workflow at:
+
+```text
+.github/workflows/scorecard.yml
+```
+
+The workflow publishes results to OpenSSF Scorecard and uploads SARIF results to GitHub code scanning. After pushing this repository to GitHub, run `OpenSSF Scorecard` once from the Actions tab or wait for the scheduled run. The Scorecard badge at the top of this README will show a score after the first successful run on the default branch.
+
+For best results:
+
+1. Keep the repository public if you want the public OpenSSF badge to resolve.
+2. Enable GitHub Actions.
+3. Enable code scanning alerts.
+4. Configure branch protection on `main`.
+5. Keep dependencies and GitHub Actions pinned or regularly updated.
+
+This repository also includes:
+
+| File | Purpose |
+| --- | --- |
+| `.github/workflows/validate.yml` | Validates Docker Compose config and n8n workflow JSON |
+| `.github/dependabot.yml` | Enables weekly update checks for GitHub Actions and Docker |
+| `SECURITY.md` | Defines the vulnerability reporting policy |
+
+## Security Before Publishing
+
+Do not commit these files or values:
 
 ```text
 .env
 n8n_data/
-file arsip PM asli
-output laporan client
-token Cloudflare
-credential Google/Telegram
+raw PM archives
+client report output
+Cloudflare tokens
+Google/Telegram credentials
 ```
 
-Repository ini sudah menyediakan `.gitignore` untuk mencegah file runtime dan secret umum ikut terupload. Gunakan `.env.example` sebagai template konfigurasi publik.
+This repository includes `.gitignore` to prevent common runtime files and secrets from being uploaded. Use `.env.example` as the public configuration template.
 
 ## Troubleshooting
 
-Jika n8n tidak bisa diakses:
+If n8n is not reachable:
 
 ```bash
 docker compose logs -f cloudflared
 docker compose logs -f n8n
 ```
 
-Jika Telegram tidak merespons:
+If Telegram does not respond:
 
-1. Pastikan workflow aktif.
-2. Pastikan credential `Telegram account` sudah dipilih ulang di n8n.
-3. Pastikan `WEBHOOK_URL` memakai domain HTTPS yang benar.
-4. Cek log:
+1. Make sure the workflow is active.
+2. Reselect the `Telegram account` credential in n8n.
+3. Make sure `WEBHOOK_URL` uses the correct HTTPS domain.
+4. Check the logs:
 
 ```bash
 docker compose logs -f n8n
 ```
 
-Jika output laporan tidak muncul di host:
+If generated output does not appear on the VM:
 
-1. Pastikan folder VM sudah dibuat.
-2. Pastikan volume di `docker-compose.yaml` sesuai.
-3. Tes permission:
+1. Make sure the VM folders exist.
+2. Make sure the volumes in `docker-compose.yaml` match the workflow paths.
+3. Test write permission:
 
 ```bash
 docker exec -it n8n sh -lc 'touch /home/bajau/pm_output/test.txt && touch /home/bajau/pm_docx/test.txt && touch /home/bajau/pm_docs/test.txt'
 ```
 
-Jika Ollama error:
+If Ollama fails:
 
 ```bash
 docker exec -it n8n sh -lc 'wget -qO- $OLLAMA_BASE_URL/api/tags'
 ```
 
-Jika Google Docs gagal dibuat:
+If Google Docs creation fails:
 
-1. Cek credential `Google Drive account`.
-2. Pastikan OAuth scope Drive sudah cukup.
-3. Pastikan folder Google Drive target di workflow masih valid.
+1. Check the `Google Drive account` credential.
+2. Make sure the OAuth scope includes the required Drive access.
+3. Make sure the target Google Drive folder in the workflow is still valid.
 
-## Struktur Repository
+## Repository Structure
 
 ```text
 .
-├── Dockerfile
-├── docker-compose.yaml
-├── .env.example
-├── .gitignore
-├── README.md
-└── script-flow-n8n/
-    └── PM-Documentation-DB-Analyzer-Bot-v8.json
+|-- Dockerfile
+|-- docker-compose.yaml
+|-- .env.example
+|-- .gitignore
+|-- LICENSE
+|-- README.md
+|-- SECURITY.md
+|-- .github/
+|   |-- dependabot.yml
+|   `-- workflows/
+|       |-- validate.yml
+|       `-- scorecard.yml
+`-- script-flow-n8n/
+    `-- PM-Documentation-DB-Analyzer-Bot-v8.json
 ```
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
