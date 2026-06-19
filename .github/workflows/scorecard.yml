@@ -1,12 +1,10 @@
 name: OpenSSF Scorecard
 
 on:
-  branch_protection_rule:
   schedule:
     - cron: '30 2 * * 0'
   push:
     branches: [main]
-  workflow_dispatch:
 
 permissions: read-all
 
@@ -14,7 +12,6 @@ jobs:
   scorecard:
     name: Scorecard analysis
     runs-on: ubuntu-latest
-    if: github.event_name == 'branch_protection_rule' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref_name == github.event.repository.default_branch
     permissions:
       contents: read
       actions: read
