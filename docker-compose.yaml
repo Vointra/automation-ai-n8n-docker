@@ -1,0 +1,50 @@
+services:
+  n8n:
+    build: .
+    container_name: n8n
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:5678:5678"
+
+    env_file:
+      - .env
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/bajau/pm_source:/home/bajau/pm_source
+      - /home/bajau/pm_output:/home/bajau/pm_output
+      - /home/bajau/pm_docs:/home/bajau/pm_docs
+      - /tmp/pm_work:/tmp/pm_work
+      - /tmp/pm_extracted:/tmp/pm_extracted
+      - /home/bajau/pm_docx:/home/bajau/pm_docx
+      - /home/bajau/pm_template:/home/bajau/pm_template
+
+    user: root
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"   # REST API  (internal only)
+      - "127.0.0.1:6334:6334"   # gRPC      (internal only)
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN}
+
+volumes:
+  qdrant_data:

@@ -1,0 +1,10 @@
+.env
+n8n_data/
+pm_source/
+pm_output/
+pm_docx/
+pm_docs/
+pm_template/
+.DS_Store
+Thumbs.db
+*.log
