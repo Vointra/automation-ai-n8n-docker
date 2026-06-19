@@ -1,8 +1,6 @@
 # Docker n8n AI - PM Documentation DB Analyzer Bot
 
-[![OpenSSF Scorecard]
-(htt‌ps://api.securityscorecards.dev/projects/github.com/{owner}/{repo}/badge)]
-(htt‌ps://securityscorecards.dev/viewer/?uri=github.com/{owner}/{repo})
+[![OpenSSF Scorecard](htt‌ps://api.securityscorecards.dev/projects/github.com/{owner}/{repo}/badge)](htt‌ps://securityscorecards.dev/viewer/?uri=github.com/{owner}/{repo})
 
 Proyek ini menjalankan stack otomasi berbasis Docker untuk n8n, Qdrant, Cloudflare Tunnel, Telegram Bot, Google Drive, dan AI lokal via Ollama. Workflow utama digunakan untuk menerima perintah Telegram, membaca arsip Preventive Maintenance MariaDB/PerconaDB, menganalisis data dengan model AI lokal, membuat laporan Markdown/DOCX/HTML, serta membuat dokumen Google Docs.
 
