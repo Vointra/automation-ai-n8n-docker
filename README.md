@@ -5,26 +5,47 @@
 [![Validate](https://github.com/Vointra/automation-ai-n8n-docker/actions/workflows/validate.yml/badge.svg)](https://github.com/Vointra/automation-ai-n8n-docker/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-This project provides a Docker-based automation stack for n8n, Qdrant, Cloudflare Tunnel, Telegram Bot, Google Drive, and local AI through Ollama. The main workflow receives Telegram commands, reads MariaDB/PerconaDB preventive maintenance archives, analyzes the data with a local AI model, generates Markdown/DOCX/HTML reports, and creates Google Docs output.
+This project provides a Docker-based automation stack for **n8n**, **Qdrant**, **Cloudflare Tunnel**, **Telegram Bot**, **Google Drive**, and local AI via **Ollama**. The main workflow receives commands from Telegram, reads PM (Preventive Maintenance) archives from MariaDB/PerconaDB, analyzes the data using a local AI model, generates reports in Markdown/DOCX/HTML format, and automatically creates Google Docs output.
 
-The n8n workflow export is located at:
+The n8n workflow export file is located at:
 
 ```text
 script-flow-n8n/PM-Documentation-DB-Analyzer-Bot-v8.json
 ```
 
+---
+
+## Table of Contents
+
+- [Architecture](#architecture)
+- [Requirements](#requirements)
+- [VM Directory Layout](#vm-directory-layout)
+- [Installation](#installation)
+- [Cloudflare Tunnel Setup](#cloudflare-tunnel-setup)
+- [Ollama / Local AI Setup](#ollama--local-ai-setup)
+- [n8n Workflow Setup](#n8n-workflow-setup)
+- [Telegram Commands](#telegram-commands)
+- [Operations](#operations)
+- [OpenSSF Scorecard](#openssf-scorecard)
+- [Security Before Publishing](#security-before-publishing)
+- [Troubleshooting](#troubleshooting)
+- [Repository Structure](#repository-structure)
+- [License](#license)
+
+---
+
 ## Architecture
 
-Main components:
+Main components of this stack:
 
 | Component | Purpose |
 | --- | --- |
 | n8n | Workflow engine for Telegram, Google Drive, Google Docs, and PM report processing |
 | Qdrant | Vector database for RAG and context retrieval |
-| Cloudflare Tunnel | Public HTTPS access to n8n without exposing the VM port directly |
+| Cloudflare Tunnel | Public HTTPS access to n8n without directly exposing the VM port |
 | Ollama | Local AI runtime for PM and database analysis |
 | Telegram Bot | User-facing command interface |
-| Google Drive | Google Docs creation and storage integration |
+| Google Drive | Integration for creating and storing Google Docs |
 | Docker Compose | Service orchestration on the Ubuntu VM |
 
 Service ports are bound to localhost on the VM:
@@ -34,7 +55,9 @@ n8n    : 127.0.0.1:5678
 Qdrant : 127.0.0.1:6333 and 127.0.0.1:6334
 ```
 
-Public n8n access should be routed through Cloudflare Tunnel to `http://n8n:5678` or `http://localhost:5678`, depending on the tunnel configuration.
+Public access to n8n should go through Cloudflare Tunnel to `http://n8n:5678` or `http://localhost:5678`, depending on the tunnel configuration.
+
+---
 
 ## Requirements
 
@@ -43,91 +66,95 @@ Recommended server baseline:
 | Requirement | Recommendation |
 | --- | --- |
 | OS | Ubuntu Server 24.04 LTS |
-| CPU | Minimum 4 vCPU, recommended 8 vCPU if local AI runs on the same host |
-| RAM | Minimum 8 GB, recommended 16 GB or more |
+| CPU | Minimum 4 vCPU, 8 vCPU recommended if local AI runs on the same host |
+| RAM | Minimum 8 GB, 16 GB or more recommended |
 | Storage | Minimum 50 GB, SSD recommended |
-| Docker | Recent Docker Engine |
+| Docker | Latest Docker Engine |
 | Compose | Docker Compose plugin (`docker compose`) |
 | Domain | Domain or subdomain managed in Cloudflare |
-| Local AI | Ollama running with the required model, default workflow model is `mistral:7b` |
+| Local AI | Ollama with the required model, default workflow model is `mistral:7b` |
 | External accounts | Telegram Bot token and Google Drive OAuth credential |
 
-Common host packages:
+Base packages required on the host:
 
 ```bash
 sudo apt update
 sudo apt install -y ca-certificates curl git
 ```
 
+---
+
 ## VM Directory Layout
 
 Host folders mounted into the n8n container:
 
-| VM folder | Container mount | Purpose |
+| VM Folder | Container Mount | Purpose |
 | --- | --- | --- |
-| `/home/bajau/pm_source` | `/home/bajau/pm_source` | Source PM archives: `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2` |
-| `/home/bajau/pm_output` | `/home/bajau/pm_output` | Markdown reports and intermediate output from `/pm` |
-| `/home/bajau/pm_docx` | `/home/bajau/pm_docx` | DOCX output |
-| `/home/bajau/pm_docs` | `/home/bajau/pm_docs` | HTML/Markdown output from `/gendoc` and `/listdoc` |
-| `/home/bajau/pm_template` | `/home/bajau/pm_template` | Optional document template folder |
+| `/home/user/pm_source` | `/home/user/pm_source` | Source PM archives: `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2` |
+| `/home/user/pm_output` | `/home/user/pm_output` | Markdown reports and intermediate output from `/pm` |
+| `/home/user/pm_docx` | `/home/user/pm_docx` | DOCX output |
+| `/home/user/pm_docs` | `/home/user/pm_docs` | HTML/Markdown output from `/gendoc` and `/listdoc` |
+| `/home/user/pm_template` | `/home/user/pm_template` | Optional document template folder |
 | `./n8n_data` | `/home/node/.n8n` | n8n internal data |
 | `/tmp/pm_work` | `/tmp/pm_work` | Temporary working directory |
 | `/tmp/pm_extracted` | `/tmp/pm_extracted` | Temporary extracted archive directory |
 
-Create the folders before starting the stack:
+Create the following folders before starting the stack:
 
 ```bash
-sudo mkdir -p /home/bajau/pm_source /home/bajau/pm_output /home/bajau/pm_docx /home/bajau/pm_docs /home/bajau/pm_template
+sudo mkdir -p /home/user/pm_source /home/user/pm_output /home/user/pm_docx /home/user/pm_docs /home/user/pm_template
 sudo mkdir -p /tmp/pm_work /tmp/pm_extracted
-sudo chown -R 1000:1000 /home/bajau/pm_source /home/bajau/pm_output /home/bajau/pm_docx /home/bajau/pm_docs /home/bajau/pm_template
+sudo chown -R 1000:1000 /home/user/pm_source /home/user/pm_output /home/user/pm_docx /home/user/pm_docs /home/user/pm_template
 ```
+
+---
 
 ## Installation
 
-1. Clone the repository on the VM.
+### 1. Clone the repository on the VM
 
 ```bash
 git clone https://github.com/Vointra/automation-ai-n8n-docker.git
 cd automation-ai-n8n-docker
 ```
 
-2. Create the environment file.
+### 2. Create the environment file
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-Set these values:
+Fill in the following variables:
 
 | Variable | Description |
 | --- | --- |
-| `N8N_HOST` | n8n domain, for example `n8n.example.com` |
+| `N8N_HOST` | n8n domain, e.g. `n8n.example.com` |
 | `N8N_PROTOCOL` | Use `https` when exposed through Cloudflare |
-| `WEBHOOK_URL` | Public n8n URL, for example `https://n8n.example.com/` |
+| `WEBHOOK_URL` | Public n8n URL, e.g. `https://n8n.example.com/` |
 | `CLOUDFLARED_TUNNEL_TOKEN` | Cloudflare Tunnel token |
 | `TELEGRAM_BOT_TOKEN` | Telegram token from BotFather |
-| `OLLAMA_BASE_URL` | Ollama URL, for example `http://host.docker.internal:11434` |
+| `OLLAMA_BASE_URL` | Ollama URL, e.g. `http://host.docker.internal:11434` |
 | `MARIADB_HOST` | Target MariaDB host or IP |
 | `MARIADB_PORT` | MariaDB port, default `3306` |
 | `MARIADB_USER` | MariaDB user |
 | `MARIADB_PASSWORD` | MariaDB password |
 | `SSH_HOST`, `SSH_USER`, `SSH_PORT` | Target SSH access if used by the workflow |
 
-3. Build and start the stack.
+### 3. Build and start the stack
 
 ```bash
 docker compose up -d --build
 ```
 
-4. Check the containers.
+### 4. Check the containers
 
 ```bash
 docker compose ps
 docker compose logs -f n8n
 ```
 
-5. Open n8n.
+### 5. Access n8n
 
 Local VM access:
 
@@ -140,6 +167,8 @@ Cloudflare Tunnel access:
 ```text
 https://your-n8n-domain.example.com
 ```
+
+---
 
 ## Cloudflare Tunnel Setup
 
@@ -156,11 +185,13 @@ Domain    : example.com
 Service   : http://n8n:5678
 ```
 
-If the tunnel service cannot resolve the `n8n` container name, use:
+If the tunnel service cannot resolve the container name `n8n`, use:
 
 ```text
 http://localhost:5678
 ```
+
+---
 
 ## Ollama / Local AI Setup
 
@@ -184,24 +215,28 @@ docker exec -it n8n sh
 wget -qO- http://host.docker.internal:11434/api/tags
 ```
 
+---
+
 ## n8n Workflow Setup
 
 1. Log in to n8n.
 2. Open `Workflows`.
-3. Import this workflow file:
+3. Import the following workflow file:
 
 ```text
 script-flow-n8n/PM-Documentation-DB-Analyzer-Bot-v8.json
 ```
 
-4. Configure credentials for these nodes:
+4. Configure credentials for the following nodes:
 
-| Credential | Used by |
+| Credential | Used By |
 | --- | --- |
 | Telegram account | Telegram Trigger and Telegram send message/file nodes |
-| Google Drive account | Google Docs file creation and update nodes |
+| Google Drive account | Nodes for creating and updating Google Docs files |
 
-5. Activate the workflow after the credentials are valid.
+5. Activate the workflow once the credentials are valid.
+
+---
 
 ## Telegram Commands
 
@@ -210,18 +245,18 @@ Main commands available in the workflow:
 | Command | Purpose |
 | --- | --- |
 | `/help` | Show command help |
-| `/list` | List PM archives in `/home/bajau/pm_source` |
+| `/list` | List PM archives in `/home/user/pm_source` |
 | `/pm 1` | Process a PM archive by number from `/list` |
 | `/pm filename.tar.gz` | Process a PM archive by exact filename |
 | `/gendoc` | List Markdown reports available for document generation |
 | `/gendoc 1` | Generate HTML output from a Markdown report |
-| `/gendoc 1 --md` | Send Markdown output |
-| `/listdoc` | List generated HTML/Markdown files in `/home/bajau/pm_docs` |
+| `/gendoc 1 --md` | Send the output in Markdown format |
+| `/listdoc` | List generated HTML/Markdown files in `/home/user/pm_docs` |
 
 Upload a PM archive to the VM:
 
 ```bash
-scp file_pm.tar.gz bajau@<vm-ip>:/home/bajau/pm_source/
+scp file_pm.tar.gz user@<vm-ip>:/home/user/pm_source/
 ```
 
 Then run from Telegram:
@@ -231,9 +266,11 @@ Then run from Telegram:
 /pm 1
 ```
 
+---
+
 ## Operations
 
-Common commands:
+Common operational commands:
 
 ```bash
 docker compose ps
@@ -254,12 +291,14 @@ Back up PM folders:
 
 ```bash
 sudo tar -czf pm_data_backup_$(date +%F).tar.gz \
-  /home/bajau/pm_source \
-  /home/bajau/pm_output \
-  /home/bajau/pm_docx \
-  /home/bajau/pm_docs \
-  /home/bajau/pm_template
+  /home/user/pm_source \
+  /home/user/pm_output \
+  /home/user/pm_docx \
+  /home/user/pm_docs \
+  /home/user/pm_template
 ```
+
+---
 
 ## OpenSSF Scorecard
 
@@ -269,11 +308,11 @@ This repository includes a GitHub Actions workflow at:
 .github/workflows/scorecard.yml
 ```
 
-The workflow publishes results to OpenSSF Scorecard and uploads SARIF results to GitHub code scanning. After pushing this repository to GitHub, run `OpenSSF Scorecard` once from the Actions tab or wait for the scheduled run. The Scorecard badge at the top of this README will show a score after the first successful run on the default branch.
+This workflow publishes results to OpenSSF Scorecard and uploads SARIF results to GitHub code scanning. After this repository is pushed to GitHub, run `OpenSSF Scorecard` once from the Actions tab or wait for the scheduled run. The Scorecard badge at the top of the README will display a score after the first successful run on the default branch.
 
 For best results:
 
-1. Keep the repository public if you want the public OpenSSF badge to resolve.
+1. Keep the repository public so the public OpenSSF badge can resolve.
 2. Enable GitHub Actions.
 3. Enable code scanning alerts.
 4. Configure branch protection on `main`.
@@ -283,13 +322,15 @@ This repository also includes:
 
 | File | Purpose |
 | --- | --- |
-| `.github/workflows/validate.yml` | Validates Docker Compose config and n8n workflow JSON |
+| `.github/workflows/validate.yml` | Validates the Docker Compose configuration and n8n workflow JSON |
 | `.github/dependabot.yml` | Enables weekly update checks for GitHub Actions and Docker |
 | `SECURITY.md` | Defines the vulnerability reporting policy |
 
+---
+
 ## Security Before Publishing
 
-Do not commit these files or values:
+Do not commit the following files or values:
 
 ```text
 .env
@@ -300,21 +341,23 @@ Cloudflare tokens
 Google/Telegram credentials
 ```
 
-This repository includes `.gitignore` to prevent common runtime files and secrets from being uploaded. Use `.env.example` as the public configuration template.
+This repository includes a `.gitignore` to prevent common runtime files and secrets from being uploaded. Use `.env.example` as the public configuration template.
+
+---
 
 ## Troubleshooting
 
-If n8n is not reachable:
+**n8n is not reachable:**
 
 ```bash
 docker compose logs -f cloudflared
 docker compose logs -f n8n
 ```
 
-If Telegram does not respond:
+**Telegram is not responding:**
 
-1. Make sure the workflow is active.
-2. Reselect the `Telegram account` credential in n8n.
+1. Make sure the workflow status is active.
+2. Re-select the `Telegram account` credential in n8n.
 3. Make sure `WEBHOOK_URL` uses the correct HTTPS domain.
 4. Check the logs:
 
@@ -322,27 +365,29 @@ If Telegram does not respond:
 docker compose logs -f n8n
 ```
 
-If generated output does not appear on the VM:
+**Generated output does not appear on the VM:**
 
-1. Make sure the VM folders exist.
+1. Make sure the VM folders have been created.
 2. Make sure the volumes in `docker-compose.yaml` match the workflow paths.
 3. Test write permission:
 
 ```bash
-docker exec -it n8n sh -lc 'touch /home/bajau/pm_output/test.txt && touch /home/bajau/pm_docx/test.txt && touch /home/bajau/pm_docs/test.txt'
+docker exec -it n8n sh -lc 'touch /home/user/pm_output/test.txt && touch /home/user/pm_docx/test.txt && touch /home/user/pm_docs/test.txt'
 ```
 
-If Ollama fails:
+**Ollama fails:**
 
 ```bash
 docker exec -it n8n sh -lc 'wget -qO- $OLLAMA_BASE_URL/api/tags'
 ```
 
-If Google Docs creation fails:
+**Google Docs creation fails:**
 
 1. Check the `Google Drive account` credential.
 2. Make sure the OAuth scope includes the required Drive access.
 3. Make sure the target Google Drive folder in the workflow is still valid.
+
+---
 
 ## Repository Structure
 
@@ -363,6 +408,8 @@ If Google Docs creation fails:
 `-- script-flow-n8n/
     `-- PM-Documentation-DB-Analyzer-Bot-v8.json
 ```
+
+---
 
 ## License
 
