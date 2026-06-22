@@ -1,4 +1,5 @@
 # Docker n8n AI - PM Documentation DB Analyzer Bot
+![Banner](banner.svg)
 
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Vointra/automation-ai-n8n-docker/badge)](https://securityscorecards.dev/viewer/?uri=github.com/Vointra/automation-ai-n8n-docker)
 [![OpenSSF Scorecard Workflow](https://github.com/Vointra/automation-ai-n8n-docker/actions/workflows/scorecard.yml/badge.svg)](https://github.com/Vointra/automation-ai-n8n-docker/actions/workflows/scorecard.yml)
