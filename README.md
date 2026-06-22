@@ -17,7 +17,6 @@ script-flow-n8n/PM-Documentation-DB-Analyzer-Bot-v8.json
 ---
 
 ## Table of Contents
-![Architecture Diagram](diagram-image.png)
 
 - [Architecture](#architecture)
 - [Requirements](#requirements)
@@ -37,6 +36,7 @@ script-flow-n8n/PM-Documentation-DB-Analyzer-Bot-v8.json
 ---
 
 ## Architecture
+![Architecture Diagram](diagram-image.png)
 
 Main components of this stack:
 
