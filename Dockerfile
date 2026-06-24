@@ -1,5 +1,5 @@
 # Stage 1: Install Python + python-docx di Alpine biasa
-FROM alpine:3.22 AS python-builder
+FROM alpine:3.24 AS python-builder
 RUN apk add --no-cache python3 py3-pip
 RUN pip3 install python-docx --break-system-packages
 
